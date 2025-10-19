@@ -10,22 +10,14 @@ To run the SC-VAE simply run `python main-stage1.py`. You could change the confi
 parser.add_argument('--model-config', type=str, default='./configs/ffhq/stage1/ffhq256-scvae16x16.yaml')
 ```
 
-# Evaluating the Model
-## Image Reconstruction
-## Image Generation
-## Image Pathches Clustering
-## Unsupervised  Image Segmentation
-
 # Citation
 @article{xiao2023sc,    
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;title={SC-VAE: Sparse Coding-based Variational Autoencoder with Learned ISTA},    
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;author={Xiao, Pan and Qiu, Peijie and Ha, Sung Min and Bani, Abdalla and Zhou, Shuang and Sotiras, Aristeidis},    
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;journal={Available at SSRN 4794775},    
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;year={2023}    
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;journal={Pattern Recognition},    
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;year={2025}    
 }
 
 # To-Do List
 - [x] Installing Dependencies
 - [x] Training the Model
-- [ ] Upload Pre-trained SC-VAEs
-- [ ] Evaluating the Model: reconstuction; image generation; image patches clustering; unsupervised image segmentaton. 
