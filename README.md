@@ -17,6 +17,9 @@ To run the SC-VAE simply run `python main-stage1.py`. You could change the confi
 parser.add_argument('--model-config', type=str, default='./configs/ffhq/stage1/ffhq256-scvae16x16.yaml')
 ```
 
+## Share the link to model's weight
+[Model weights](https://drive.google.com/drive/folders/1G8gmgtkA_U_pkSWz_z3v23eq5kb1AGtO?usp=drive_link)
+
 ## Citation
 @article{xiao2023sc,    
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;title={SC-VAE: Sparse Coding-based Variational Autoencoder with Learned ISTA},    
@@ -28,4 +31,4 @@ parser.add_argument('--model-config', type=str, default='./configs/ffhq/stage1/f
 ## To-Do List
 - [x] Installing dependencies
 - [x] Training the Model
-- [] Uploading pre-trained code
+- [x] Uploading pre-trained models to google driver
