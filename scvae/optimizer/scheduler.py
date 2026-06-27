@@ -28,7 +28,7 @@ def create_scheduler(optimizer, config, steps_per_epoch, max_epoch, distenv=None
     start_from_zero = config.start_from_zero
 
     scheduler = CosineAnnealingLR(
-        optimizer, T_max=final_steps - warmup_steps - buffer_steps, eta_min=min_lr
+        optimizer, T_max=max(1, final_steps - warmup_steps - buffer_steps), eta_min=min_lr
     )
 
     if warmup_steps > 0.0:

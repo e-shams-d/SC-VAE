@@ -215,7 +215,7 @@ def main(args, model_config):
     model.to(args.device)
 
     num_epochs = model_config.experiment.epochs
-    steps_per_epoch = math.ceil(len(train_loader) / (model_config.experiment.batch_size * distenv.world_size))
+    steps_per_epoch = len(train_loader)
 
     if not args.eval:
         optimizer = create_optimizer(model, model_config)
@@ -241,7 +241,7 @@ def main(args, model_config):
         train(train_loader, model, optimizer, scheduler, args, writer)
         loss, _, Dictionary = test(valid_loader, model, args, writer)
 
-        writer.add_image('Dictionary', Dictionary, epoch + 1, dataformats='HW')
+        writer.add_image('Dictionary', Dictionary.detach().cpu(), epoch + 1, dataformats='HW')
 
         reconstruction, rec_latent_representation, multi_heads_alphas = generate_samples(fixed_images, model, args)
         rec = make_grid(reconstruction.cpu(), nrow=8, value_range=(-1, 1), normalize=True)
