@@ -112,6 +112,7 @@ dependencies:
   - zlib=1.2.13=h8cc25b3_0
   - zstd=1.5.2=h19a0ad4_0
   - pip:
+    - --extra-index-url https://download.pytorch.org/whl/cu116
     - aiofiles==24.1.0
     - anyio==4.4.0
     - astunparse==1.6.3
