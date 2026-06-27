@@ -45,6 +45,8 @@ def train(data_loader, model, optimizer, scheduler, args, writer):
         writer.add_scalar('loss/test/sparsity_nonzero', sparsity_nonzero, args.steps)
         writer.add_scalar('loss/test/sparsity_nmf', sparsity_nmf, args.steps)
 
+        # clip gradients to keep the unrolled LISTA iterations from exploding into NaN
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         scheduler.step()
 
