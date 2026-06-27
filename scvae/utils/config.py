@@ -25,7 +25,7 @@ def is_stage1_arch(arch_type):
 
 def augment_arch_defaults(arch_config):
 
-    if arch_config.type == 'scvae-vae':
+    if arch_config.type in ('scvae-vae', 'deepksvd-vae'):
         arch_defaults = OmegaConf.create(
             {
                 'ema': None,

@@ -26,7 +26,7 @@ def train(data_loader, model, optimizer, scheduler, args, writer):
         images = images.to(args.device)
 
         optimizer.zero_grad()
-        x_tilde, rec_latent_representation, Dictionary, z, _, mincutpoolloss, ortholoss = model(images)
+        x_tilde, rec_latent_representation, Dictionary, z = model(images)
         sparsity_nonzero, sparsity_nmf = look_sparsity(z)
 
         # Reconstruction loss
@@ -34,18 +34,9 @@ def train(data_loader, model, optimizer, scheduler, args, writer):
         # Latent Sparse dictionary learning objective
         loss_sdl = torch.mean(rec_latent_representation[0]*rec_latent_representation[1])
 
-        if mincutpoolloss is not None:
-            loss = loss_recons + loss_sdl + (mincutpoolloss + ortholoss)
-            print('loss:' + str(loss.cpu()) + ' loss_recons:' + str(loss_recons.cpu()) +
-                  ' loss_sdl:' + str(loss_sdl.cpu()) + 'mincutpoolloss:' + str(mincutpoolloss) + 'ortholoss:' + str(
-                ortholoss) + ' sparsity_nonzero:' + str(sparsity_nonzero), flush=True)
-            writer.add_scalar('loss/train/loss_mincutpool', mincutpoolloss, args.steps)
-            writer.add_scalar('loss/train/ortholoss', ortholoss, args.steps)
-            writer.add_scalar('loss/train/ortholoss and mincutpoolloss', ortholoss + mincutpoolloss, args.steps)
-        else:
-            loss = loss_recons + loss_sdl
-            print('loss:' + str(loss.cpu()) + ' loss_recons:' + str(loss_recons.cpu()) +
-                  ' loss_sdl:' + str(loss_sdl.cpu()) + ' sparsity_nonzero:' + str(sparsity_nonzero), flush=True)
+        loss = loss_recons + loss_sdl
+        print('loss:' + str(loss.cpu()) + ' loss_recons:' + str(loss_recons.cpu()) +
+              ' loss_sdl:' + str(loss_sdl.cpu()) + ' sparsity_nonzero:' + str(sparsity_nonzero), flush=True)
         loss.backward()
 
         # Logs
@@ -65,7 +56,7 @@ def test(data_loader, model, args, writer):
         loss_recons, loss_sdl = 0., 0.
         for images, _ in data_loader:
             images = images.to(args.device)
-            x_tilde, rec_latent_representation, Dictionary, z, _, _, _ = model(images)
+            x_tilde, rec_latent_representation, Dictionary, z = model(images)
             loss_recons += F.mse_loss(x_tilde, images)
             loss_sdl += torch.mean(rec_latent_representation[0] * rec_latent_representation[1])
             sparsity_nonzero, sparsity_nmf = look_sparsity(z)
@@ -111,7 +102,8 @@ def calculate_sparsity(W):
 def generate_samples(images, model, args):
     with torch.no_grad():
         images = images.to(args.device)
-        x_tilde, rec_latent_representation, _, _, multi_heads_alphas, _, _ = model(images)
+        x_tilde, rec_latent_representation, _, _ = model(images)
+        multi_heads_alphas = None  # current model has no multi-head attention output
     return x_tilde, rec_latent_representation, multi_heads_alphas
 
 def rec_multi_head_attentions(writer, multi_heads_alphas, num_attention_heads, epoch):
@@ -121,7 +113,7 @@ def rec_multi_head_attentions(writer, multi_heads_alphas, num_attention_heads, e
                                                      int(multi_heads_alpha.size(1) ** 0.5),
                                                      int(multi_heads_alpha.size(1) ** 0.5),
                                                      multi_heads_alpha.size(2))
-        multi_heads_alpha = make_grid(multi_heads_alpha.permute(0, 3, 1, 2).cpu(), nrow=8, range=(-1, 1),
+        multi_heads_alpha = make_grid(multi_heads_alpha.permute(0, 3, 1, 2).cpu(), nrow=8, value_range=(-1, 1),
                                      normalize=True)
         writer.add_image('multi_heads_alpha_' + str(i), multi_heads_alpha, epoch)
 
@@ -170,18 +162,21 @@ def main(args, model_config):
     # Fixed images for Tensorboard
     fixed_images, img_with_noise = next(iter(test_loader))
 
-    fixed_grid = make_grid(fixed_images, nrow=8, range=(-1, 1), normalize=True)
+    fixed_grid = make_grid(fixed_images, nrow=8, value_range=(-1, 1), normalize=True)
+
+    # L1 soft-threshold weight for sparse coding (config key may be 'beta' or 'alpha')
+    beta = model_config.arch.latent.get('beta', model_config.arch.latent.get('alpha'))
 
     date = time.strftime('%Y_%m_%d_%H_%M_%S')
     save_filename = args.dir_models + '/' + args.dataset + '/l_alpha_f_beta_' + args.dataset + '_attention' + args.attention + '_num_epochs' + str(
         model_config.experiment.epochs) + '_bs' + str(model_config.experiment.batch_size) + '_num_soft_thresh' + str(
-        model_config.arch.latent.num_soft_thresh) + '_beta' + str(model_config.arch.latent.beta) +\
+        model_config.arch.latent.num_soft_thresh) + '_beta' + str(beta) +\
                  '_' + str(date) + '_r' + str(args.model_config.split('/')[-1].split('vae')[1].split('.')[0])  + '_beta_mincut' + str(model_config.arch.latent.beta_mincut)\
                  + '_num_att_heads' + str(model_config.arch.latent.num_attention_heads)
     print(save_filename); os.makedirs(save_filename)
     logdir = args.dir_logs + '/' + args.dataset + '/l_alpha_f_beta_' + args.dataset + '_attention' + args.attention + '_num_epochs' + str(
             model_config.experiment.epochs) + '_bs' + str(model_config.experiment.batch_size) + '_num_soft_thresh' + str(
-            model_config.arch.latent.num_soft_thresh) + '_beta' + str(model_config.arch.latent.beta) +\
+            model_config.arch.latent.num_soft_thresh) + '_beta' + str(beta) +\
                             '_' + str(date) + '_r' + str(args.model_config.split('/')[-1].split('vae')[1].split('.')[0]) + '_beta_mincut' + str(model_config.arch.latent.beta_mincut)\
                 + '_num_att_heads' + str(model_config.arch.latent.num_attention_heads)
     print(logdir)
@@ -213,11 +208,9 @@ def main(args, model_config):
         Dict_init,
         c_init,
         w_init,
-        model_config.arch.latent.beta,
-        model_config.arch.latent.beta_mincut,
+        beta,
         args.device,
         args.attention,
-        model_config.arch.latent.num_attention_heads,
     )
     model.to(args.device)
 
@@ -233,10 +226,10 @@ def main(args, model_config):
 
     # Generate the samples first once
     reconstruction, rec_latent_representation, multi_heads_alphas = generate_samples(fixed_images, model, args)
-    rec = make_grid(reconstruction.cpu(), nrow=8, range=(-1, 1), normalize=True)
+    rec = make_grid(reconstruction.cpu(), nrow=8, value_range=(-1, 1), normalize=True)
     writer.add_image('reconstruction', rec, 0)
-    alpha = rec_latent_representation[0]
-    alpha = make_grid(alpha.permute(0, 3, 1, 2).cpu(), nrow=8, range=(-1, 1), normalize=True)
+    alpha = rec_latent_representation[0].mean(dim=-1, keepdim=True)
+    alpha = make_grid(alpha.permute(0, 3, 1, 2).cpu(), nrow=8, value_range=(-1, 1), normalize=True)
     writer.add_image('alpha', alpha, 0)
 
     if multi_heads_alphas is not None:
@@ -251,11 +244,11 @@ def main(args, model_config):
         writer.add_image('Dictionary', Dictionary, epoch + 1, dataformats='HW')
 
         reconstruction, rec_latent_representation, multi_heads_alphas = generate_samples(fixed_images, model, args)
-        rec = make_grid(reconstruction.cpu(), nrow=8, range=(-1, 1), normalize=True)
+        rec = make_grid(reconstruction.cpu(), nrow=8, value_range=(-1, 1), normalize=True)
         writer.add_image('reconstruction', rec, epoch + 1)
 
-        alpha = rec_latent_representation[0]
-        alpha = make_grid(alpha.permute(0, 3, 1, 2).cpu(), nrow=8, range=(-1, 1), normalize=True)
+        alpha = rec_latent_representation[0].mean(dim=-1, keepdim=True)
+        alpha = make_grid(alpha.permute(0, 3, 1, 2).cpu(), nrow=8, value_range=(-1, 1), normalize=True)
         writer.add_image('alpha', alpha, epoch + 1)
 
         if multi_heads_alphas is not None:
