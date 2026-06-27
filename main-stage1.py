@@ -242,6 +242,7 @@ def main(args, model_config):
         print('epoch:' + str(epoch))
         train(train_loader, model, optimizer, scheduler, args, writer)
         loss, _, Dictionary = test(valid_loader, model, args, writer)
+        print('[epoch %d] validation reconstruction loss: %.6f' % (epoch, loss), flush=True)
 
         writer.add_image('Dictionary', Dictionary.detach().cpu(), epoch + 1, dataformats='HW')
 
